@@ -11,3 +11,9 @@ Include/
 Scripts/
 share/
 pyvenv.cfg
+
+*.pt
+*.pth
+*.h5
+*.ckpt
+data/
