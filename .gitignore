@@ -1,0 +1,13 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment folders
+env/
+venv/
+Lib/
+Include/
+Scripts/
+share/
+pyvenv.cfg
