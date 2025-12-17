@@ -1,11 +1,9 @@
-# --- START OF FILE main.py ---
 import mediapipe as mp
 import cv2
 import sys
 import time
 import numpy as np
 
-# --- AI MODEL IMPORTS ---
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
@@ -28,7 +26,7 @@ class FaceEmotionModel:
         self.device = torch.device(device)
         self.model = None
         
-        # --- FIX: VGGFace2 Normalization ---
+        # VGGFace2 Normalization
         # 1. Resize to 224x224
         # 2. ToTensor() converts [0, 255] -> [0.0, 1.0]
         # 3. Lambda x*255 converts back to [0.0, 255.0]
@@ -112,7 +110,7 @@ class FaceEmotionModel:
             return "Error"
 
 # ---------------------------------------------------------
-# 2. UI COMPONENTS
+# UI COMPONENTS
 # ---------------------------------------------------------
 class ScoresWindow(QWidget):
     def __init__(self):
@@ -174,7 +172,7 @@ class VideoWindow(QWidget):
         self.setLayout(layout)
 
 # ---------------------------------------------------------
-# 3. MAIN APP CONTROLLER
+# MAIN APP CONTROLLER
 # ---------------------------------------------------------
 class WebcamApp(QMainWindow):
     expression_changed = pyqtSignal(str)
@@ -234,7 +232,7 @@ class WebcamApp(QMainWindow):
             self.detection_result = result
             if len(result.face_landmarks) > 0:
                 mp_np_img = output_image.numpy_view()
-                # 2. Crop & Align
+                # Crop & Align
                 cropped_face = self.crop_face(mp_np_img, result.face_landmarks[0])
                 
                 if cropped_face is not None:
@@ -252,7 +250,7 @@ class WebcamApp(QMainWindow):
             print(f"Error: {ex}")
 
     def crop_face(self, image, landmarks):
-        """Aligns rotation based on eyes and crops a square region."""
+        # Aligns rotation based on eyes and crops a square region
         h, w, _ = image.shape
         
         # 1. ROTATION
@@ -314,7 +312,6 @@ class WebcamApp(QMainWindow):
             self.face_landmarker.detect_async(mp_image, ts)
             self.last_timestamp = ts
 
-        # 1. Create a black overlay layer
         overlay = np.zeros_like(frame)
         
         if self.detection_result and self.detection_result.face_landmarks:
@@ -322,9 +319,7 @@ class WebcamApp(QMainWindow):
                 lm_list = landmark_pb2.NormalizedLandmarkList(
                     landmark=[landmark_pb2.NormalizedLandmark(x=l.x, y=l.y, z=l.z) for l in face_landmarks]
                 )
-                
-                # 2. Draw Pure White lines/dots on the black overlay
-                # We keep thickness=1, but we will fade it out in step 3.
+
                 white_spec = mp_drawing.DrawingSpec(color=(255, 255, 255), thickness=1, circle_radius=1)
                 
                 mp_drawing.draw_landmarks(
@@ -335,12 +330,9 @@ class WebcamApp(QMainWindow):
                     connection_drawing_spec=white_spec
                 )
 
-        # 3. BLEND: "Ghost" effect
-        # We add the overlay to the original frame with 0.25 weight (25% opacity)
-        # This makes the 1px white lines look semi-transparent and extremely thin.
         display_frame = cv2.addWeighted(frame, 1.0, overlay, 0.25, 0)
 
-        # Draw the crop box on top (Solid, so it stays bright)
+        # Draw the crop box on top
         if self.last_crop is not None:
              h_c, w_c, _ = self.last_crop.shape
              crop_bgr = cv2.cvtColor(self.last_crop, cv2.COLOR_RGB2BGR)
