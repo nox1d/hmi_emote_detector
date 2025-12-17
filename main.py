@@ -314,17 +314,38 @@ class WebcamApp(QMainWindow):
             self.face_landmarker.detect_async(mp_image, ts)
             self.last_timestamp = ts
 
-        display_frame = frame.copy()
+        # 1. Create a black overlay layer
+        overlay = np.zeros_like(frame)
+        
         if self.detection_result and self.detection_result.face_landmarks:
              for face_landmarks in self.detection_result.face_landmarks:
-                lm_list = landmark_pb2.NormalizedLandmarkList(landmark=[landmark_pb2.NormalizedLandmark(x=l.x, y=l.y, z=l.z) for l in face_landmarks])
-                mp_drawing.draw_landmarks(display_frame, lm_list, mp_face_mesh.FACEMESH_TESSELATION)
+                lm_list = landmark_pb2.NormalizedLandmarkList(
+                    landmark=[landmark_pb2.NormalizedLandmark(x=l.x, y=l.y, z=l.z) for l in face_landmarks]
+                )
+                
+                # 2. Draw Pure White lines/dots on the black overlay
+                # We keep thickness=1, but we will fade it out in step 3.
+                white_spec = mp_drawing.DrawingSpec(color=(255, 255, 255), thickness=1, circle_radius=1)
+                
+                mp_drawing.draw_landmarks(
+                    image=overlay,
+                    landmark_list=lm_list,
+                    connections=mp_face_mesh.FACEMESH_TESSELATION,
+                    landmark_drawing_spec=white_spec,
+                    connection_drawing_spec=white_spec
+                )
 
+        # 3. BLEND: "Ghost" effect
+        # We add the overlay to the original frame with 0.25 weight (25% opacity)
+        # This makes the 1px white lines look semi-transparent and extremely thin.
+        display_frame = cv2.addWeighted(frame, 1.0, overlay, 0.25, 0)
+
+        # Draw the crop box on top (Solid, so it stays bright)
         if self.last_crop is not None:
              h_c, w_c, _ = self.last_crop.shape
              crop_bgr = cv2.cvtColor(self.last_crop, cv2.COLOR_RGB2BGR)
              display_frame[0:h_c, 0:w_c] = crop_bgr
-             cv2.rectangle(display_frame, (0,0), (w_c, h_c), (0,255,0), 2)
+             cv2.rectangle(display_frame, (0,0), (w_c, h_c), (255,255,255), 1)
 
         qimg = QImage(cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB).data, 
                       frame.shape[1], frame.shape[0], frame.shape[1]*3, QImage.Format.Format_RGB888)
